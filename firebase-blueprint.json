@@ -1,0 +1,58 @@
+{
+  "entities": {
+    "MindMap": {
+      "title": "MindMap",
+      "description": "User created mindmaps with structure, styling and owner linkage.",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "The unique ID of the mindmap."
+        },
+        "name": {
+          "type": "string",
+          "description": "The descriptive title of the mindmap."
+        },
+        "createdAt": {
+          "type": "number",
+          "description": "Epoch timestamp of when the mindmap was created."
+        },
+        "updatedAt": {
+          "type": "number",
+          "description": "Epoch timestamp of when the mindmap was last modified."
+        },
+        "ownerId": {
+          "type": "string",
+          "description": "The Firebase Authentication UID of the owner."
+        },
+        "theme": {
+          "type": "string",
+          "description": "Optional visualization theme for rendering."
+        },
+        "nodes": {
+          "type": "array",
+          "description": "Serialized list of all map node objects."
+        },
+        "edges": {
+          "type": "array",
+          "description": "Serialized list of all node link edges."
+        }
+      },
+      "required": [
+        "id",
+        "name",
+        "createdAt",
+        "updatedAt",
+        "ownerId",
+        "nodes",
+        "edges"
+      ]
+    }
+  },
+  "firestore": {
+    "/users/{userId}/mindmaps/{mindmapId}": {
+      "schema": "MindMap",
+      "description": "Secure isolation for personal user mindmaps."
+    }
+  }
+}
