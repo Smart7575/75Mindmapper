@@ -117,7 +117,12 @@ type TranslationKeys =
   | 'theme_retro_name'
   | 'theme_warm_name'
   | 'theme_bubble_name'
-  | 'custom_label_prompt';
+  | 'custom_label_prompt'
+  | 'import_btn'
+  | 'import_success'
+  | 'import_invalid_file'
+  | 'import_error'
+  | 'import_json_btn';
 
 const translations: Record<Language, Record<TranslationKeys, string>> = {
   nl: {
@@ -235,7 +240,12 @@ const translations: Record<Language, Record<TranslationKeys, string>> = {
     new_parent_node: 'Centraal onderwerp',
     new_child_node: 'Subonderwerp',
     new_map_notification: 'Nieuwe mindmap aangemaakt',
-    custom_label_prompt: 'Typ een label voor de lijn...'
+    custom_label_prompt: 'Typ een label voor de lijn...',
+    import_btn: 'Importeer Backup',
+    import_success: 'Backup succesvol geïmporteerd!',
+    import_invalid_file: 'Fout: Ongeldig mindmap JSON-bestand.',
+    import_error: 'Importeren mislukt. Probeer het opnieuw.',
+    import_json_btn: 'JSON Backup Laden'
   },
   en: {
     brand_name: 'MindMapper',
@@ -352,7 +362,12 @@ const translations: Record<Language, Record<TranslationKeys, string>> = {
     new_parent_node: 'Central topic',
     new_child_node: 'Subtopic',
     new_map_notification: 'New mind map created',
-    custom_label_prompt: 'Type a label for the line...'
+    custom_label_prompt: 'Type a label for the line...',
+    import_btn: 'Import Backup',
+    import_success: 'Backup imported successfully!',
+    import_invalid_file: 'Error: Invalid mindmap JSON file.',
+    import_error: 'Import failed. Please try again.',
+    import_json_btn: 'Load JSON Backup'
   }
 };
 

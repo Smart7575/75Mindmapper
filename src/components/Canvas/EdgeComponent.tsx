@@ -124,8 +124,25 @@ const EdgeComponent: React.FC<Props> = ({ edge, sourceNode, targetNode, selected
           height="20"
           className="pointer-events-auto"
         >
-          <div className="w-full h-full flex items-center justify-center">
-            <span className={`${theme === 'retro-terminal' ? 'bg-[#070a13] text-[#10b981]' : 'bg-white/80 text-slate-500'} px-1 py-0.5 rounded text-[10px] whitespace-nowrap overflow-hidden text-ellipsis shadow-sm`}>
+          <div 
+            xmlns="http://www.w3.org/1999/xhtml"
+            style={{
+              width: '100%',
+              height: '100%',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              boxSizing: 'border-box'
+            }}
+          >
+            <span 
+              className="edge-label-span px-1 py-0.5 rounded text-[10px] whitespace-nowrap overflow-hidden text-ellipsis shadow-sm"
+              style={{
+                backgroundColor: theme === 'retro-terminal' ? '#070a13' : 'rgba(255,255,255,0.8)',
+                color: theme === 'retro-terminal' ? '#10b981' : '#64748b',
+                fontFamily: theme === 'retro-terminal' ? '"JetBrains Mono", ui-monospace, monospace' : theme === 'elegant-warm' ? 'Georgia, serif' : 'Inter, sans-serif'
+              }}
+            >
               {edge.label}
             </span>
           </div>

@@ -128,7 +128,7 @@ export const getThemeNodeStyles = (
       return {
         backgroundColor: levelStyle.bg,
         borderColor: levelStyle.border,
-        textColor: levelStyle.text,
+        textColor: '#ffffff',
         borderWidth: isRoot ? 3 : 2,
         borderStyle: 'solid' as const,
         borderRadius: 0, // Hard box corners

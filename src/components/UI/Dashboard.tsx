@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Plus, Search, Trash2, Clock, Calendar, ChevronRight, X } from 'lucide-react';
+import { Plus, Search, Trash2, Clock, Calendar, ChevronRight, X, Upload } from 'lucide-react';
 import { MindMap } from '../../types';
 import { motion, AnimatePresence } from 'motion/react';
 import { useLanguage } from '../../lib/i18n';
@@ -12,9 +12,10 @@ interface Props {
   onClose?: () => void;
   userEmail?: string | null;
   onSignOut?: () => void;
+  onImportJSON: (jsonContent: string) => void;
 }
 
-const Dashboard: React.FC<Props> = ({ maps, onOpen, onCreate, onDelete, onClose, userEmail, onSignOut }) => {
+const Dashboard: React.FC<Props> = ({ maps, onOpen, onCreate, onDelete, onClose, userEmail, onSignOut, onImportJSON }) => {
   const { t, language, setLanguage } = useLanguage();
   const [search, setSearch] = useState('');
   const [isCreating, setIsCreating] = useState(false);
@@ -114,13 +115,38 @@ const Dashboard: React.FC<Props> = ({ maps, onOpen, onCreate, onDelete, onClose,
             />
           </div>
           
-          <button 
-            onClick={() => setIsCreating(true)}
-            className="flex items-center gap-3 px-8 py-4 bg-slate-900 text-white rounded-2xl hover:bg-slate-800 transition-all shadow-2xl shadow-slate-200 hover:scale-[1.02] active:scale-95 cursor-pointer"
-          >
-            <Plus size={24} />
-            <span className="font-bold tracking-tight text-lg">{t('new_map')}</span>
-          </button>
+          <div className="flex items-center gap-4 shrink-0">
+            <label className="flex items-center gap-3 px-6 py-4 bg-slate-150 border border-slate-200 text-slate-700 hover:bg-slate-200 hover:text-slate-900 rounded-2xl transition-all hover:scale-[1.02] active:scale-95 cursor-pointer">
+              <Upload size={22} className="text-slate-500" />
+              <span className="font-bold tracking-tight text-base whitespace-nowrap">{t('import_btn')}</span>
+              <input
+                type="file"
+                accept=".json"
+                className="hidden"
+                onChange={(e) => {
+                  const file = e.target.files?.[0];
+                  if (!file) return;
+                  const reader = new FileReader();
+                  reader.onload = (event) => {
+                    const result = event.target?.result;
+                    if (typeof result === 'string') {
+                      onImportJSON(result);
+                    }
+                  };
+                  reader.readAsText(file);
+                  e.target.value = '';
+                }}
+              />
+            </label>
+
+            <button 
+              onClick={() => setIsCreating(true)}
+              className="flex items-center gap-3 px-8 py-4 bg-slate-900 text-white rounded-2xl hover:bg-slate-800 transition-all shadow-2xl shadow-slate-200 hover:scale-[1.02] active:scale-95 cursor-pointer"
+            >
+              <Plus size={24} />
+              <span className="font-bold tracking-tight text-lg whitespace-nowrap">{t('new_map')}</span>
+            </button>
+          </div>
         </div>
 
         {/* Content */}

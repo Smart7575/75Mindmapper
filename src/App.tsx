@@ -14,6 +14,7 @@ import { auth, db, handleFirestoreError, OperationType } from './lib/firebase';
 import AuthScreen from './components/UI/AuthScreen';
 import { Loader2 } from 'lucide-react';
 import { useLanguage } from './lib/i18n';
+import { getThemeNodeStyles, getThemeCanvasBg, getThemeFontClass } from './lib/themes';
 
 export default function App() {
   const { t, language } = useLanguage();
@@ -460,6 +461,65 @@ export default function App() {
     setShowDashboard(false);
   };
 
+  const handleImportJSON = async (jsonContent: string) => {
+    if (!currentUser) return;
+    try {
+      const parsed = JSON.parse(jsonContent);
+      let importedMaps: any[] = [];
+      if (Array.isArray(parsed)) {
+        importedMaps = parsed;
+      } else if (parsed && typeof parsed === 'object') {
+        importedMaps = [parsed];
+      }
+
+      const validMaps: MindMap[] = [];
+
+      for (const item of importedMaps) {
+        if (item && typeof item === 'object' && Array.isArray(item.nodes)) {
+          const mapId = 'map-' + Math.random().toString(36).substr(2, 9);
+          const newMap: MindMap = {
+            id: mapId,
+            name: item.name || (language === 'en' ? 'Imported Mind Map' : 'Geïmporteerde Mind Map'),
+            createdAt: typeof item.createdAt === 'number' ? item.createdAt : Date.now(),
+            updatedAt: Date.now(),
+            nodes: item.nodes,
+            edges: Array.isArray(item.edges) ? item.edges : [],
+            theme: item.theme || 'default',
+          };
+          validMaps.push(newMap);
+        }
+      }
+
+      if (validMaps.length === 0) {
+        alert(t('import_invalid_file'));
+        return;
+      }
+
+      setMaps(prev => {
+        const filteredPrev = prev.filter(m => !validMaps.some(vm => vm.id === m.id));
+        return [...filteredPrev, ...validMaps];
+      });
+
+      setSaveStatus('Saving...');
+      for (const map of validMaps) {
+        await setDoc(doc(db, 'users', currentUser.uid, 'mindmaps', map.id), {
+          ...map,
+          ownerId: currentUser.uid
+        });
+      }
+      setSaveStatus('Saved');
+      
+      alert(t('import_success'));
+      
+      if (validMaps.length > 0) {
+        handleOpenMap(validMaps[0].id);
+      }
+    } catch (e) {
+      console.error('Import error:', e);
+      alert(t('import_error'));
+    }
+  };
+
   const handleRenameMap = (name: string) => {
     if (!currentMap) return;
     updateMaps({ ...currentMap, name, updatedAt: Date.now() });
@@ -521,55 +581,257 @@ export default function App() {
     const container = document.getElementById('svg-container');
     if (!container) return;
 
+    const svgElement = container.querySelector('svg');
+    if (!svgElement) return;
+
+    // Compute bounding box of all nodes
+    const nodes = currentMap.nodes;
+    if (nodes.length === 0) return;
+
+    let minX = Infinity;
+    let maxX = -Infinity;
+    let minY = Infinity;
+    let maxY = -Infinity;
+
+    nodes.forEach(node => {
+      minX = Math.min(minX, node.x);
+      maxX = Math.max(maxX, node.x + node.width);
+      minY = Math.min(minY, node.y);
+      maxY = Math.max(maxY, node.y + node.height);
+    });
+
+    // Padding around the exported mindmap
+    const padding = 100;
+    const exportX = minX - padding;
+    const exportY = minY - padding;
+    const exportW = (maxX - minX) + (padding * 2);
+    const exportH = (maxY - minY) + (padding * 2);
+
+    // Change background color matching the active theme!
+    let exportBgColor = '#ffffff';
+    if (currentMap.theme === 'retro-terminal') {
+      exportBgColor = '#05070f';
+    } else if (currentMap.theme === 'elegant-warm') {
+      exportBgColor = '#FDFBF7';
+    } else if (currentMap.theme === 'playful-bubble') {
+      exportBgColor = '#FAF9FF';
+    }
+
+    // Save original states of container to properly restore them afterwards
+    const originalContainerStyle = {
+      position: container.style.position,
+      left: container.style.left,
+      top: container.style.top,
+      width: container.style.width,
+      height: container.style.height,
+      zIndex: container.style.zIndex,
+      overflow: container.style.overflow,
+    };
+
+    // Save original state of SVG
+    const originalSvgAttrs = {
+      viewBox: svgElement.getAttribute('viewBox'),
+      width: svgElement.getAttribute('width'),
+      height: svgElement.getAttribute('height'),
+    };
+    const originalSvgStyle = {
+      width: svgElement.style.width,
+      height: svgElement.style.height,
+      position: svgElement.style.position,
+      left: svgElement.style.left,
+      top: svgElement.style.top,
+    };
+
+    // Save states of overlay controls (everything except SVG) to temporarily hide them
+    const overlays = Array.from(container.children).filter(child => child.tagName.toLowerCase() !== 'svg');
+    const originalDisplays = overlays.map(el => {
+      const hEl = el as HTMLElement;
+      return { element: hEl, display: hEl.style.display };
+    });
+
+    // Save background grid pattern rect dimensions
+    const bgRect = svgElement.querySelector('rect[fill="url(#dynamic-grid)"]');
+    const originalBgRectAttrs = bgRect ? {
+      x: bgRect.getAttribute('x'),
+      y: bgRect.getAttribute('y'),
+      width: bgRect.getAttribute('width'),
+      height: bgRect.getAttribute('height'),
+    } : null;
+
+    // Elements we mutate temporarily to ensure consistent text colors during export
+    const mutatedElements: { element: HTMLElement; originalColor: string; originalFill: string }[] = [];
+
     try {
-      if (format === 'svg') {
-        const svgElement = container.querySelector('svg');
-        if (svgElement) {
-          const svgData = new XMLSerializer().serializeToString(svgElement);
-          const blob = new Blob([svgData], { type: 'image/svg+xml;charset=utf-8' });
-          const url = URL.createObjectURL(blob);
-          const a = document.createElement('a');
-          a.href = url;
-          a.download = `${fileName}.svg`;
-          a.click();
-          URL.revokeObjectURL(url);
-        }
-        return;
+      // 1. Instantly hide UI overlay controls (minimap, zoom buttons, FAB, toolbar, etc.)
+      overlays.forEach(el => {
+        (el as HTMLElement).style.display = 'none';
+      });
+
+      // 2. Lock the SVG viewBox and sizing to surround the mindmap bounds perfectly
+      svgElement.setAttribute('viewBox', `${exportX} ${exportY} ${exportW} ${exportH}`);
+      svgElement.setAttribute('width', `${exportW}`);
+      svgElement.setAttribute('height', `${exportH}`);
+      
+      svgElement.style.width = `${exportW}px`;
+      svgElement.style.height = `${exportH}px`;
+      svgElement.style.position = 'absolute';
+      svgElement.style.left = '0';
+      svgElement.style.top = '0';
+
+      // 3. Size and isolate the container in place, positioned far beneath (zIndex -99999) to keep active rendering frames
+      container.style.position = 'fixed';
+      container.style.left = '0px';
+      container.style.top = '0px';
+      container.style.width = `${exportW}px`;
+      container.style.height = `${exportH}px`;
+      container.style.zIndex = '-99999';
+      container.style.overflow = 'hidden';
+
+      // 4. Ensure the grid stretches adequately across the expanded viewBox area
+      if (bgRect) {
+        bgRect.setAttribute('x', `${exportX - 2000}`);
+        bgRect.setAttribute('y', `${exportY - 2000}`);
+        bgRect.setAttribute('width', `${exportW + 4000}`);
+        bgRect.setAttribute('height', `${exportH + 4000}`);
       }
 
-      if (format === 'png') {
+      // 5. Directly override inline style colors/fills of text elements for perfect cross-browser rendering
+      // This is 100% reliable for browser rendering with html-to-image/foreignObject and fixes contrast issues.
+      currentMap.nodes.forEach(node => {
+        const nodeEl = container.querySelector(`[data-node-id="${node.id}"]`);
+        if (nodeEl) {
+          const textElements = nodeEl.querySelectorAll('div, span, textarea');
+          const themeProps = getThemeNodeStyles(currentMap.theme, node, false, false);
+          
+          // Use whatever textColor is dynamically defined by the theme mapping
+          const targetColor = themeProps.textColor;
+
+          textElements.forEach(el => {
+            const htmlEl = el as HTMLElement;
+            mutatedElements.push({
+              element: htmlEl,
+              originalColor: htmlEl.style.color,
+              originalFill: htmlEl.style.fill
+            });
+            htmlEl.style.setProperty('color', targetColor, 'important');
+            htmlEl.style.setProperty('fill', targetColor, 'important');
+          });
+        }
+      });
+
+      // Target connection line labels to preserve correct contrast
+      const edgeLabels = container.querySelectorAll('.edge-label-span, span.edge-label-span');
+      edgeLabels.forEach(el => {
+        const htmlEl = el as HTMLElement;
+        mutatedElements.push({
+          element: htmlEl,
+          originalColor: htmlEl.style.color,
+          originalFill: htmlEl.style.fill
+        });
+        const labelColor = currentMap.theme === 'retro-terminal' ? '#10b981' : '#64748b';
+        htmlEl.style.setProperty('color', labelColor, 'important');
+      });
+
+      // 6. Trigger download based on requested format
+      if (format === 'svg') {
+        const svgData = new XMLSerializer().serializeToString(svgElement);
+        const blob = new Blob([svgData], { type: 'image/svg+xml;charset=utf-8' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `${fileName}.svg`;
+        a.click();
+        URL.revokeObjectURL(url);
+      }
+
+      else if (format === 'png') {
         const dataUrl = await htmlToImage.toPng(container, {
-          backgroundColor: '#ffffff',
-          quality: 1,
-          pixelRatio: 2 // High quality
+          backgroundColor: exportBgColor,
+          width: exportW,
+          height: exportH,
+          quality: 1.0,
+          pixelRatio: 2 // Crisp Retina quality
         });
         const a = document.createElement('a');
         a.href = dataUrl;
         a.download = `${fileName}.png`;
         a.click();
-        return;
       }
 
-      if (format === 'pdf') {
+      else if (format === 'pdf') {
         const dataUrl = await htmlToImage.toPng(container, {
-          backgroundColor: '#ffffff',
+          backgroundColor: exportBgColor,
+          width: exportW,
+          height: exportH,
           quality: 0.95,
           pixelRatio: 2
         });
         
         const pdf = new jsPDF({
-          orientation: container.clientWidth > container.clientHeight ? 'landscape' : 'portrait',
+          orientation: exportW > exportH ? 'landscape' : 'portrait',
           unit: 'px',
-          format: [container.clientWidth, container.clientHeight]
+          format: [exportW, exportH]
         });
 
-        pdf.addImage(dataUrl, 'PNG', 0, 0, container.clientWidth, container.clientHeight);
+        pdf.addImage(dataUrl, 'PNG', 0, 0, exportW, exportH);
         pdf.save(`${fileName}.pdf`);
-        return;
       }
     } catch (error) {
       console.error('Export failed:', error);
-      alert('Export mislukt. Probeer het opnieuw.');
+      alert(language === 'nl' ? 'Export mislukt. Probeer het opnieuw.' : 'Export failed. Please try again.');
+    } finally {
+      // Restore mutated inline style elements
+      mutatedElements.forEach(item => {
+        if (item.originalColor) {
+          item.element.style.setProperty('color', item.originalColor);
+        } else {
+          item.element.style.removeProperty('color');
+        }
+        if (item.originalFill) {
+          item.element.style.setProperty('fill', item.originalFill);
+        } else {
+          item.element.style.removeProperty('fill');
+        }
+      });
+
+      // 6. Restore Container styles instantly to its flexible React layout position
+      container.style.position = originalContainerStyle.position;
+      container.style.left = originalContainerStyle.left;
+      container.style.top = originalContainerStyle.top;
+      container.style.width = originalContainerStyle.width;
+      container.style.height = originalContainerStyle.height;
+      container.style.zIndex = originalContainerStyle.zIndex;
+      container.style.overflow = originalContainerStyle.overflow;
+
+      // Restore SVG attributes
+      if (originalSvgAttrs.viewBox) svgElement.setAttribute('viewBox', originalSvgAttrs.viewBox);
+      else svgElement.removeAttribute('viewBox');
+
+      if (originalSvgAttrs.width) svgElement.setAttribute('width', originalSvgAttrs.width);
+      else svgElement.removeAttribute('width');
+
+      if (originalSvgAttrs.height) svgElement.setAttribute('height', originalSvgAttrs.height);
+      else svgElement.removeAttribute('height');
+
+      // Restore SVG styles
+      svgElement.style.width = originalSvgStyle.width;
+      svgElement.style.height = originalSvgStyle.height;
+      svgElement.style.position = originalSvgStyle.position;
+      svgElement.style.left = originalSvgStyle.left;
+      svgElement.style.top = originalSvgStyle.top;
+
+      // Restore background rect attributes
+      if (bgRect && originalBgRectAttrs) {
+        if (originalBgRectAttrs.x) bgRect.setAttribute('x', originalBgRectAttrs.x);
+        if (originalBgRectAttrs.y) bgRect.setAttribute('y', originalBgRectAttrs.y);
+        if (originalBgRectAttrs.width) bgRect.setAttribute('width', originalBgRectAttrs.width);
+        if (originalBgRectAttrs.height) bgRect.setAttribute('height', originalBgRectAttrs.height);
+      }
+
+      // Restore visibility/display of overlays
+      originalDisplays.forEach(item => {
+        item.element.style.display = item.display;
+      });
     }
   };
 
@@ -1036,6 +1298,7 @@ export default function App() {
           onClose={maps.length > 0 ? (() => setShowDashboard(false)) : undefined}
           userEmail={currentUser?.email}
           onSignOut={() => signOut(auth)}
+          onImportJSON={handleImportJSON}
         />
       )}
 

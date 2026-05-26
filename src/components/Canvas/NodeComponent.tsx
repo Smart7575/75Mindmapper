@@ -49,6 +49,7 @@ const NodeComponent: React.FC<Props> = ({
   const textRef = useRef<HTMLTextAreaElement>(null);
 
   const themeProps = getThemeNodeStyles(theme, node, selected, !!isTargeted);
+  const textColor = theme === 'retro-terminal' ? '#ffffff' : themeProps.textColor;
 
   const handleDoubleClick = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -144,8 +145,7 @@ const NodeComponent: React.FC<Props> = ({
     >
       <motion.g
         animate={{ 
-          scale: isTargeted ? 1.05 : (selected ? 1.02 : 1),
-          filter: isTargeted ? 'brightness(1.1)' : 'brightness(1)'
+          scale: isTargeted ? 1.05 : (selected ? 1.02 : 1)
         }}
         transition={{ duration: 0.2 }}
       >
@@ -164,7 +164,23 @@ const NodeComponent: React.FC<Props> = ({
       {renderShape()}
       
       <foreignObject x="0" y="0" width={node.width} height={node.height} className="pointer-events-none">
-        <div className="w-full h-full flex flex-col items-center justify-center p-3 text-center pointer-events-auto">
+        <div 
+          xmlns="http://www.w3.org/1999/xhtml"
+          className="pointer-events-auto"
+          style={{
+            width: '100%',
+            height: '100%',
+            display: 'flex',
+            flexDirection: 'column',
+            justifyContent: 'center',
+            alignItems: 'center',
+            textAlign: 'center',
+            padding: '12px',
+            boxSizing: 'border-box',
+            color: textColor,
+            fontFamily: theme === 'retro-terminal' ? '"JetBrains Mono", ui-monospace, monospace' : theme === 'elegant-warm' ? 'Georgia, serif' : 'Inter, sans-serif'
+          }}
+        >
           {isEditing ? (
             <textarea
               ref={textRef}
@@ -173,24 +189,27 @@ const NodeComponent: React.FC<Props> = ({
               onBlur={handleTextBlur}
               className="w-full h-full bg-transparent border-none outline-none resize-none overflow-hidden text-center"
               style={{
-                color: themeProps.textColor,
+                color: textColor,
                 fontSize: `${themeProps.fontSize}px`,
                 fontWeight: themeProps.fontWeight,
                 fontStyle: themeProps.fontStyle,
                 textDecoration: node.textDecoration,
+                fontFamily: theme === 'retro-terminal' ? '"JetBrains Mono", ui-monospace, monospace' : theme === 'elegant-warm' ? 'Georgia, serif' : 'Inter, sans-serif'
               }}
             />
           ) : (
             <div
               style={{
-                color: themeProps.textColor,
+                color: textColor,
                 fontSize: `${themeProps.fontSize}px`,
                 fontWeight: themeProps.fontWeight,
                 fontStyle: themeProps.fontStyle,
                 textDecoration: node.textDecoration,
                 wordBreak: 'break-word',
+                textAlign: 'center',
+                fontFamily: theme === 'retro-terminal' ? '"JetBrains Mono", ui-monospace, monospace' : theme === 'elegant-warm' ? 'Georgia, serif' : 'Inter, sans-serif'
               }}
-              className="select-none font-medium leading-tight tracking-tight"
+              className="select-none font-medium leading-tight tracking-tight text-center"
             >
               {node.icon && <span className="mr-1.5">{node.icon}</span>}
               {node.text}
