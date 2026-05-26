@@ -59,8 +59,6 @@ type TranslationKeys =
   | 'inspector_typography'
   | 'inspector_bold'
   | 'inspector_italic'
-  | 'inspector_ai_btn'
-  | 'inspector_ai_sub'
   | 'inspector_line_style'
   | 'style_solid'
   | 'style_dashed'
@@ -186,8 +184,6 @@ const translations: Record<Language, Record<TranslationKeys, string>> = {
     inspector_typography: 'Typografie',
     inspector_bold: 'VET',
     inspector_italic: 'SCHUIN',
-    inspector_ai_btn: 'AI Ideeën Genereren',
-    inspector_ai_sub: 'Je kaart uitbreiden met Gemini Pro',
     inspector_line_style: 'Lijnstijl',
     style_solid: 'Doorgetrokken',
     style_dashed: 'Gestreept',
@@ -308,8 +304,6 @@ const translations: Record<Language, Record<TranslationKeys, string>> = {
     inspector_typography: 'Typography',
     inspector_bold: 'BOLD',
     inspector_italic: 'ITALIC',
-    inspector_ai_btn: 'AI Generate Ideas',
-    inspector_ai_sub: 'Expanding your map with Gemini Pro',
     inspector_line_style: 'Line Style',
     style_solid: 'Solid',
     style_dashed: 'Dashed',

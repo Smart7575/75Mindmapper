@@ -835,76 +835,6 @@ export default function App() {
     }
   };
 
-  const handleAIExpand = async (id: string) => {
-    if (!currentMap) return;
-    const node = currentMap.nodes.find(n => n.id === id);
-    if (!node) return;
-
-    try {
-      const response = await fetch('/api/ai/brainstorm', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ topic: currentMap.name, contextNode: node }),
-      });
-      
-      const { suggestions } = await response.json();
-      
-      if (suggestions && suggestions.length > 0) {
-        const newNodes: Node[] = [];
-        const newEdges: Edge[] = [];
-        
-        suggestions.forEach((s: any, i: number) => {
-          const angle = (2 * Math.PI * i) / suggestions.length;
-          const radius = 250;
-          
-          const newNode: Node = {
-            id: 'node-' + Math.random().toString(36).substr(2, 9),
-            text: s.text,
-            x: snap(node.x + Math.cos(angle) * radius),
-            y: snap(node.y + Math.sin(angle) * radius),
-            width: DEFAULT_NODE_WIDTH,
-            height: DEFAULT_NODE_HEIGHT,
-            shape: node.shape,
-            backgroundColor: node.backgroundColor,
-            borderColor: node.borderColor,
-            borderWidth: node.borderWidth,
-            borderStyle: 'solid',
-            textColor: node.textColor,
-            fontSize: 13,
-            fontWeight: '400',
-            fontStyle: 'normal',
-            textDecoration: 'none'
-          };
-          
-          const newEdge: Edge = {
-            id: 'edge-' + Math.random().toString(36).substr(2, 9),
-            sourceId: node.id,
-            targetId: newNode.id,
-            color: node.borderColor,
-            width: 1.5,
-            style: 'solid',
-            curve: 1,
-            arrowStart: false,
-            arrowEnd: true
-          };
-          
-          newNodes.push(newNode);
-          newEdges.push(newEdge);
-        });
-
-        const newMap = {
-          ...currentMap,
-          nodes: [...currentMap.nodes, ...newNodes],
-          edges: [...currentMap.edges, ...newEdges],
-          updatedAt: Date.now()
-        };
-        updateMaps(newMap);
-      }
-    } catch (error) {
-      console.error('AI Error:', error);
-    }
-  };
-
   const applyRadialLayout = () => {
     if (!currentMap) return;
     addToHistory();
@@ -1283,7 +1213,6 @@ export default function App() {
               updateMaps(newMap);
               setSelectedEdgeId(null);
             }}
-            onAIExpand={handleAIExpand}
           />
         )}
       </div>

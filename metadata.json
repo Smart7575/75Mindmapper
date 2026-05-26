@@ -1,6 +1,6 @@
 {
   "name": "75Mindmapper",
-  "description": "An intuitive, infinite SVG-based mind mapping tool for visual brainstorming and project planning with AI-powered assistance.",
+  "description": "An intuitive, infinite SVG-based mind mapping tool for visual brainstorming and project planning.",
   "requestFramePermissions": [],
   "majorCapabilities": [
     "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"

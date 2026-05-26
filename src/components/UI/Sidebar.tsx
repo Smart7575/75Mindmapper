@@ -10,10 +10,9 @@ interface Props {
   onUpdateEdge: (update: Partial<Edge>) => void;
   onDeleteNode: (id: string) => void;
   onDeleteEdge: (id: string) => void;
-  onAIExpand: (id: string) => void;
 }
 
-const Sidebar: React.FC<Props> = ({ selectedNode, selectedEdge, onUpdateNode, onUpdateEdge, onDeleteNode, onDeleteEdge, onAIExpand }) => {
+const Sidebar: React.FC<Props> = ({ selectedNode, selectedEdge, onUpdateNode, onUpdateEdge, onDeleteNode, onDeleteEdge }) => {
   const { t, language } = useLanguage();
   if (!selectedNode && !selectedEdge) return null;
 
@@ -132,16 +131,6 @@ const Sidebar: React.FC<Props> = ({ selectedNode, selectedEdge, onUpdateNode, on
                </div>
             </div>
 
-            <div className="pt-8">
-               <button 
-                 onClick={() => onAIExpand(selectedNode.id)}
-                 className="w-full py-4 bg-gradient-to-br from-purple-600 to-blue-600 text-white rounded-2xl flex items-center justify-center gap-3 shadow-xl shadow-blue-100 hover:shadow-blue-200 transition-all active:scale-95 group cursor-pointer"
-               >
-                 <SparklesIcon size={18} className="group-hover:animate-pulse" />
-                 <span className="text-sm font-bold tracking-tight">{t('inspector_ai_btn')}</span>
-               </button>
-               <p className="text-[10px] text-slate-400 mt-3 text-center font-medium opacity-70 italic tracking-tight">{t('inspector_ai_sub')}</p>
-            </div>
           </div>
         ) : selectedEdge && (
           <div className="space-y-8">
@@ -234,11 +223,5 @@ const Sidebar: React.FC<Props> = ({ selectedNode, selectedEdge, onUpdateNode, on
     </aside>
   );
 };
-
-const SparklesIcon = ({ size, className }: { size: number; className?: string }) => (
-  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className={className} strokeLinecap="round" strokeLinejoin="round">
-    <path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/><path d="M19 3v4"/><path d="M21 5h-4"/>
-  </svg>
-);
 
 export default Sidebar;
